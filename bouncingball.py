@@ -1,7 +1,7 @@
 import os, time, datetime, threading, random
 import numpy as np
 import matplotlib.pyplot as plt
-#from cortix.src.module import Module
+from cortix.src.module import Module
 import time as Module
 
 
