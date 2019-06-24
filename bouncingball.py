@@ -10,6 +10,11 @@ class BouncingBall:#(Module):
         super().__init__()
         self.cor = 0.95
         self.p0 = [random.randint(0,10),random.randint(10,30)]
+        r=1.0
+        self.circle = ([],[])
+        for phi in np.arange(0,6.28,0.01):
+            self.circle[0].append(r*np.cos(phi))
+            self.circle[1].append(r*np.sin(phi))
         self.v0 = [random.uniform(-70,70),random.uniform(-40,40)]
         self.cor = 0.95
         self.a = (0,-9.81)
@@ -37,10 +42,6 @@ class BouncingBall:#(Module):
                 t=0.0
             return self.px,self.py
 ##            self.send((px,py), 'bb-plot')
-            #line.set_data(p[0],p[1])
-##            line.set_data(self.px,self.py)
-##            plt.draw()
-##            plt.pause(0.001)
             
             
 
@@ -48,6 +49,10 @@ class BouncingBall:#(Module):
     def wall_collision(self):
         
         pass
+
+
+
+
 
 if __name__ == '__main__':
     plt.ion()
