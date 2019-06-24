@@ -60,12 +60,17 @@ if __name__ == '__main__':
     app = BouncingBall()
     app2 = BouncingBall()
     app3 = BouncingBall()
-    while True:
+    while plt.fignum_exists(fig.number):
         x,y = app.run(time_int=0.1)
         line.set_data(x,y)
         x,y = app2.run(time_int=0.1)
         line2.set_data(x,y)
         x,y = app3.run(time_int=0.1)
         line3.set_data(x,y)
-        plt.draw()
-        plt.pause(0.001)
+        try:
+            plt.draw()
+            plt.pause(0.001)
+        except:
+            print('Goodbye')
+            time.sleep(5)
+            break
