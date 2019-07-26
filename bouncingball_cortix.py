@@ -31,9 +31,9 @@ class BouncingBall(Module):
         self.a = (0,-9.81)
         self.timestamp=str(datetime.datetime.now())
         
-    def run(self, time_int=0.01):
+    def run(self, time_int=0.0005):
         t = time_int
-        for i in range(10):
+        for i in range(10000):
             self.py = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
             self.px = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
             self.vy = self.a[1]*t + self.v0[1]
@@ -67,16 +67,15 @@ class BouncingBall(Module):
                 self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
                 t=0
             for i in self.ports:
-                print(i)
-                if 'plot' in str(i):
-                    continue
                 self.send(self.circle,i)
             for i in self.ports:
-                #print('plot' in str(i),str(i))
                 if 'plot' in str(i):
                     continue
-                print('listening for:', str(i))
                 self.circle = self.recv(i)
+            print(self.v0) 
+        for i in self.ports:
+            if 'plot' in str(i):
+                self.send('done',i)
         print('done')
         return
     def wall_collision(self):
@@ -84,11 +83,11 @@ class BouncingBall(Module):
 
 
 if __name__ == '__main__':
-    cortix = Cortix(use_mpi=True)
+    cortix = Cortix(use_mpi=False)
     mod_list = []
     plot = Plot()
     cortix.add_module(plot)
-    for i in range(5):
+    for i in range(2):
         time.sleep(0.01)
         app = BouncingBall()
         mod_list.append(app)

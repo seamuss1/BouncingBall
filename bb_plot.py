@@ -11,15 +11,27 @@ class Plot(Module):
         super().__init__()
         self.timestamp=str(datetime.datetime.now())
     def run(self):
-        print('plot')
+        print('start plot')
+        self.dic = {}
+        while True:
+            for i in self.ports:
+                if not 'plot' in str(i):
+                    continue
+                if str(i) not in self.dic:
+                    self.dic[str(i)] = []
+                circle = self.recv(i)
+               
+            
+                if str(circle) == 'done':
+                    self.plot()
+                    return
+                self.dic[str(i)].append(circle)
+    def plot(self):
+        print('starting plot')
+        for line in self.dic:
+            #fig,ax = plt.subplots(111)
+            for i in self.dic[line]:
+                plt.plot(i[0],i[1])
+        plt.savefig('output_ball.png')
+        print('goodbye')
         return
-##        for i in self.ports:
-##            if not 'plot' in str(i):
-##                print('check')
-##                continue
-##            circle = self.recv(i)
-##            print(circle)
-##            
-##            if str(circle) == 'done':
-##                return
-##        return
