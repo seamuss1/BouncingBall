@@ -2,7 +2,7 @@ import os, time, datetime, threading, random
 import numpy as np
 import matplotlib.pyplot as plt
 from cortix.src.module import Module
-import time as Module
+import time 
 
 
 class BouncingBall:#(Module):
@@ -11,15 +11,18 @@ class BouncingBall:#(Module):
         self.cor = 0.95
         self.p0 = [random.randint(0,10),random.randint(10,30)]
         r=1.0
-        self.circle = ([],[])
+        self.ucircle = [[],[]]
+        self.circle=[[],[]]
         for phi in np.arange(0,6.28,0.01):
-            self.circle[0].append(r*np.cos(phi))
-            self.circle[1].append(r*np.sin(phi))
+            self.ucircle[0].append(r*np.cos(phi))
+            self.ucircle[1].append(r*np.sin(phi))
+        self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
+        self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
         self.v0 = [random.uniform(-70,70),random.uniform(-40,40)]
         self.cor = 0.95
         self.a = (0,-9.81)
         self.timestamp=str(datetime.datetime.now())
-    def run(self, time_int=0.1):
+    def run(self, time_int=0.01):
         t = time_int
         while True:
             self.py = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
@@ -28,30 +31,27 @@ class BouncingBall:#(Module):
             self.vx = self.a[0]*t + self.v0[0]
             self.v0[0],self.v0[1]=self.vx,self.vy
             self.p0[0],self.p0[1]=self.px,self.py
-            if self.py <0:
+            self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
+            self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
+            if min(self.circle[1]) <0:
                 self.v0[1] = -self.v0[1]*self.cor
                 self.p0[0],self.p0[1] = self.px,0.01
                 t=0.0
-            if self.px<-30.0:
+            if min(self.circle[0]) <-30.0:
                 self.v0[0] = -self.v0[0]*self.cor
                 self.p0[0], self.p0[1] = -29.99, self.py
                 t=0.0
-            if self.px > 30:
+            if max(self.circle[-0]) > 30:
                 self.v0[0] = -self.v0[0]*self.cor
                 self.p0[0], self.p0[1] = 29.99,self.py
                 t=0.0
-            return self.px,self.py
+            return self.circle[0],self.circle[1]
 ##            self.send((px,py), 'bb-plot')
             
             
-
-##        self.send('DONE', 'bb-plot')
     def wall_collision(self):
         
         pass
-
-
-
 
 
 if __name__ == '__main__':
@@ -76,6 +76,6 @@ if __name__ == '__main__':
             plt.draw()
             plt.pause(0.001)
         except:
-            print('Goodbye')
-            time.sleep(5)
             break
+    print('Goodbye')
+    time.sleep(5)
