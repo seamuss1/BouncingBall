@@ -26,57 +26,87 @@ class BouncingBall(Module):
             self.ucircle[1].append(r*np.sin(phi))
         self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
         self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-        self.v0 = [random.uniform(-70,70),random.uniform(-40,40)]
+        self.v0 = [random.uniform(-40,40),random.uniform(-10,10)]
         self.cor = 0.95
         self.a = (0,-9.81)
         self.timestamp=str(datetime.datetime.now())
         
-    def run(self, time_int=0.0005):
+    def run(self, time_int=0.01):
         t = time_int
-        for i in range(10000):
-            self.py = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
-            self.px = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
-            self.vy = self.a[1]*t + self.v0[1]
-            self.vx = self.a[0]*t + self.v0[0]
-            self.v0[0],self.v0[1]=self.vx,self.vy
-            self.p0[0],self.p0[1]=self.px,self.py
-            self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-            self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-            if min(self.circle[1]) <0:
-                self.v0[1] = -self.v0[1]*self.cor
-                self.p0[0],self.p0[1] = self.px,0.01+1
-                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-                t=0.0
-            if max(self.circle[1]) > 50:
-                self.v0[1] = -self.v0[1]*self.cor
-                self.p0[0],self.p0[1] = self.px,49.99-1
-                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-                t=0.0
-            if min(self.circle[0]) <-30.0:
-                self.v0[0] = -self.v0[0]*self.cor
-                self.p0[0], self.p0[1] = -29.99+1, self.py
-                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-                t=0.0
-            if max(self.circle[-0]) > 30:
-                self.v0[0] = -self.v0[0]*self.cor
-                self.p0[0], self.p0[1] = 29.99-1,self.py
-                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-                t=0
+        portdic = dict()
+        for i in range(500):
             for i in self.ports:
                 self.send(self.circle,i)
             for i in self.ports:
                 if 'plot' in str(i):
                     continue
-                self.circle = self.recv(i)
-            print(self.v0) 
+                if str(i) not in portdic:
+                    portdic[str(i)] = ''
+                circle = self.recv(i)
+                portdic[str(i)] = circle
+            self.p0[1] = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
+            self.p0[0] = (0.5*self.a[0]*t**2)+(self.v0[0]*t)+self.p0[0]
+            self.v0[1] = self.a[1]*t + self.v0[1]
+            self.v0[0] = self.a[0]*t + self.v0[0]
+            self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
+            self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
+            for c,(p,q) in enumerate(zip(self.circle[0],self.circle[1])):
+
+                if q < 0:
+                    self.circle[1][c] = 0
+                    self.v0[1] = abs(self.v0[1])
+                    t=0.0
+                if p <-30:
+                    self.circle[0][c] = -30
+                    self.v0[0] = abs(self.v0[0])
+                    t=0.0
+                if p > 30:
+                    self.circle[0][c] = 30
+                    self.v0[0] = -abs(self.v0[0])
+                    t=0.0
+                if q > 50:
+                    self.circle[1][c] = 50
+                    self.v0[1] = -abs(self.v0[1])
+                    t=0.0
+            print(self.p0, self.v0)
+##            self.py = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
+##            self.px = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
+##            self.vy = self.a[1]*t + self.v0[1]
+##            self.vx = self.a[0]*t + self.v0[0]
+##            self.v0[0],self.v0[1]=self.vx,self.vy
+##            self.p0[0],self.p0[1]=self.px,self.py
+##            print('Iteration: {}, Position: {}'.format(i,self.p0))
+##            self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
+##            self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
+##            if min(self.circle[1]) <0:
+##                self.v0[1] = -self.v0[1]*self.cor
+##                self.p0[0],self.p0[1] = self.px,0.01+1
+##                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
+##                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
+##                t=0.0
+##            if max(self.circle[1]) > 50:
+##                self.v0[1] = -self.v0[1]*self.cor
+##                self.p0[0],self.p0[1] = self.px,49.99-1
+##                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
+##                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
+##                t=0.0
+##            if min(self.circle[0]) <-30.0:
+##                self.v0[0] = -self.v0[0]*self.cor
+##                self.p0[0], self.p0[1] = -29.99+1, self.py
+##                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
+##                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
+##                t=0.0
+##            if max(self.circle[-0]) > 30:
+##                self.v0[0] = -self.v0[0]*self.cor
+##                self.p0[0], self.p0[1] = 29.99-1,self.py
+##                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
+##                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
+##                t=0
         for i in self.ports:
             if 'plot' in str(i):
                 self.send('done',i)
         print('done')
+        
         return
     def wall_collision(self):
         pass
@@ -87,13 +117,12 @@ if __name__ == '__main__':
     mod_list = []
     plot = Plot()
     cortix.add_module(plot)
-    for i in range(2):
+    for i in range(3):
         time.sleep(0.01)
         app = BouncingBall()
         mod_list.append(app)
         cortix.add_module(app)
-        
-        
+                
     for c,i in enumerate(mod_list):
         p1 = Port('plot-send{}'.format(c))
         p3 = Port('plot-receive{}'.format(c))
@@ -112,6 +141,3 @@ if __name__ == '__main__':
     cortix.run()
     
             
-
-    print('Goodbye')
-    time.sleep(5)
