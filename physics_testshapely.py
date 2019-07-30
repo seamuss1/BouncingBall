@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from cortix.src.module import Module
 import time 
 import shapely.geometry as geo
+import shapely.ops
 
 class BouncingBall:#(Module):
     def __init__(self):
@@ -19,6 +20,8 @@ class BouncingBall:#(Module):
         self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
         self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
         self.v0 = [random.uniform(0,30),random.uniform(-5,5)]
+        self.p0o = self.p0
+        self.v0o = self.v0
         self.cor = 0.95
         self.a = (0,-9.81)
         self.timestamp=str(datetime.datetime.now())
@@ -28,8 +31,6 @@ class BouncingBall:#(Module):
         self.bndry.append([np.linspace(-30,30),np.linspace(50,50)])
         self.bndry.append([np.linspace(-30,30),np.linspace(0,0)])
         self.box = geo.box(-30,0,30,50)
-        for f in self.box.exterior:
-            print(f)
 
     def run(self, time_int=0.01):
         t = time_int
@@ -39,9 +40,21 @@ class BouncingBall:#(Module):
             self.v0[1] = self.a[1]*t + self.v0[1]
             self.v0[0] = self.a[0]*t + self.v0[0]
             self.pnt = geo.point.Point(self.p0[0],self.p0[1])
-            self.circle = p.buffer(self.r)
+            self.circle = self.pnt.buffer(self.r)
             if not(self.box.contains(self.circle)):
-                self.wall_collision()
+                print('DOES NOT CONTAIN')
+                for x in range(100):
+                    i = t/100
+                    self.p0o[1] = 0.5*self.a[1]*i**2+self.v0o[1]*i+self.p0o[1]
+                    self.p0o[0] = 0.5*self.a[0]*i**2+self.v0o[0]*i+self.p0o[0]
+                    self.v0o[1] = self.a[1]*t + self.v0o[1]
+                    self.v0o[0] = self.a[0]*t + self.v0o[0]
+                    self.v0,self.p0=self.v0o,self.p0o
+                    self.pnt = geo.point.Point(self.p0[0],self.p0[1])
+                    self.circle = self.pnt.buffer(self.r)
+                    if not(self.box.contains(self.circle)):
+                        self.wall_collision()
+                        
 ##            for b in self.bndry:
 ##                for c,(p,q) in enumerate(zip(self.circle[0],self.circle[1])):
 ##                    pass        
@@ -58,13 +71,21 @@ class BouncingBall:#(Module):
 ##                    self.v0[0] = -abs(self.v0[0])
 ##                    t=0.0
             x,y = self.circle.exterior.xy
+            self.p0o = self.p0
+            self.v0o = self.v0
             return x,y
             
             
     def wall_collision(self):
-        return
-        self.pnt.distance()
-
+        
+            
+        print('distance',self.pnt.distance(self.box))
+        p1,p2 = shapely.ops.nearest_points(self.box,self.pnt)
+        x1,y1,x2,y2 = p1.x,p1.y, p2.x,p2.y
+        v = np.sqrt(np.square(self.v0[0])+np.square(self.v0[1]))
+        print(x1,y1,x2,y2)
+        print(v)
+        input('enter')
 ##circle = geo.point.Point(1,1).buffer(1)
 ##x,y = circle.exterior.xy
 
@@ -79,6 +100,8 @@ if __name__ == '__main__':
     app = BouncingBall()
     app2 = BouncingBall()
     app3 = BouncingBall()
+    x,y = geo.box(-30,0,30,50).exterior.xy
+    plt.plot(x,y)
     while plt.fignum_exists(fig.number):
         x,y = app.run(time_int=0.1)
         line.set_data(x,y)
@@ -93,3 +116,4 @@ if __name__ == '__main__':
             break
     print('Goodbye')
     time.sleep(.5)
+    

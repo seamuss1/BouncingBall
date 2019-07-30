@@ -10,9 +10,6 @@ from cortix.src.cortix_main import Cortix
 import time
 from bb_plot import Plot
 
-#global sends, receives
-sends = 0
-receives = 0
 class BouncingBall(Module):
     def __init__(self):
         super().__init__()
@@ -26,7 +23,7 @@ class BouncingBall(Module):
             self.ucircle[1].append(r*np.sin(phi))
         self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
         self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-        self.v0 = [random.uniform(-40,40),random.uniform(-10,10)]
+        self.v0 = [random.uniform(-50,50),random.uniform(-10,10)]
         self.cor = 0.95
         self.a = (0,-9.81)
         self.timestamp=str(datetime.datetime.now())
@@ -34,7 +31,7 @@ class BouncingBall(Module):
     def run(self, time_int=0.01):
         t = time_int
         portdic = dict()
-        for i in range(500):
+        for i in range(200):
             for i in self.ports:
                 self.send(self.circle,i)
             for i in self.ports:
@@ -44,10 +41,10 @@ class BouncingBall(Module):
                     portdic[str(i)] = ''
                 circle = self.recv(i)
                 portdic[str(i)] = circle
-            self.p0[1] = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
-            self.p0[0] = (0.5*self.a[0]*t**2)+(self.v0[0]*t)+self.p0[0]
-            self.v0[1] = self.a[1]*t + self.v0[1]
-            self.v0[0] = self.a[0]*t + self.v0[0]
+            self.p0[1] = 0.5*self.a[1]*time_int**2+self.v0[1]*time_int+self.p0[1]
+            self.p0[0] = (0.5*self.a[0]*time_int**2)+(self.v0[0]*time_int)+self.p0[0]
+            self.v0[1] = self.a[1]*time_int + self.v0[1]
+            self.v0[0] = self.a[0]*time_int + self.v0[0]
             self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
             self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
             for c,(p,q) in enumerate(zip(self.circle[0],self.circle[1])):
@@ -55,20 +52,17 @@ class BouncingBall(Module):
                 if q < 0:
                     self.circle[1][c] = 0
                     self.v0[1] = abs(self.v0[1])
-                    t=0.0
                 if p <-30:
                     self.circle[0][c] = -30
                     self.v0[0] = abs(self.v0[0])
-                    t=0.0
                 if p > 30:
                     self.circle[0][c] = 30
                     self.v0[0] = -abs(self.v0[0])
-                    t=0.0
                 if q > 50:
                     self.circle[1][c] = 50
                     self.v0[1] = -abs(self.v0[1])
-                    t=0.0
-            print(self.p0, self.v0)
+
+            print(i,self.p0, self.v0)
 ##            self.py = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
 ##            self.px = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
 ##            self.vy = self.a[1]*t + self.v0[1]
