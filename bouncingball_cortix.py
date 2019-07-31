@@ -9,29 +9,51 @@ from cortix.src.port import Port
 from cortix.src.cortix_main import Cortix
 import time
 from bb_plot import Plot
+import shapely.geometry as geo
+import shapely.ops
+from shapely import affinity
 
 class BouncingBall(Module):
-    def __init__(self):
+    def __init__(self,bndry=None):
         super().__init__()
+        self.bndry = bndry
         self.cor = 0.95
         self.p0 = [random.randint(0,10),random.randint(10,30)]
-        r=1.0
-        self.ucircle = [[],[]]
-        self.circle=[[],[]]
-        for phi in np.arange(0,6.28,0.01):
-            self.ucircle[0].append(r*np.cos(phi))
-            self.ucircle[1].append(r*np.sin(phi))
-        self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-        self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
+        self.r=1.0
         self.v0 = [random.uniform(-50,50),random.uniform(-10,10)]
         self.cor = 0.95
         self.a = (0,-9.81)
         self.timestamp=str(datetime.datetime.now())
-        
+##        self.box = geo.box(-30,0,30,50)
+##        self.box = affinity.rotate(self.box,40)
+##        self.bndry = []
+##        c = 0
+##        coords = list(self.box.exterior.coords)
+##        #Parse the box(LineRing) to create a list of line obstacles
+##        for f in coords:
+##            try:
+##                cr = geo.LineString([coords[c],coords[c+1]])
+##            except IndexError:
+##                cr = geo.LineString([coords[c],coords[-1]])
+##                break
+##            
+##            self.bndry.append(cr)
+##            c +=1
+            
     def run(self, time_int=0.01):
         t = time_int
         portdic = dict()
-        for i in range(200):
+        for i in range(300):
+            self.p0[1] = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
+            self.p0[0] = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
+            self.v0[1] = self.a[1]*t + self.v0[1]
+            self.v0[0] = self.a[0]*t + self.v0[0]
+            self.pnt = geo.point.Point(self.p0[0],self.p0[1])
+            self.circle = self.pnt.buffer(self.r)
+            for shape in self.bndry:
+                if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
+                    p1,p2 = shapely.ops.nearest_points(shape,self.pnt)
+                    self.wall_collision(shape,p1,p2)
             for i in self.ports:
                 self.send(self.circle,i)
             for i in self.ports:
@@ -41,79 +63,56 @@ class BouncingBall(Module):
                     portdic[str(i)] = ''
                 circle = self.recv(i)
                 portdic[str(i)] = circle
-            self.p0[1] = 0.5*self.a[1]*time_int**2+self.v0[1]*time_int+self.p0[1]
-            self.p0[0] = (0.5*self.a[0]*time_int**2)+(self.v0[0]*time_int)+self.p0[0]
-            self.v0[1] = self.a[1]*time_int + self.v0[1]
-            self.v0[0] = self.a[0]*time_int + self.v0[0]
-            self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-            self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-            for c,(p,q) in enumerate(zip(self.circle[0],self.circle[1])):
-
-                if q < 0:
-                    self.circle[1][c] = 0
-                    self.v0[1] = abs(self.v0[1])
-                if p <-30:
-                    self.circle[0][c] = -30
-                    self.v0[0] = abs(self.v0[0])
-                if p > 30:
-                    self.circle[0][c] = 30
-                    self.v0[0] = -abs(self.v0[0])
-                if q > 50:
-                    self.circle[1][c] = 50
-                    self.v0[1] = -abs(self.v0[1])
-
-            print(i,self.p0, self.v0)
-##            self.py = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
-##            self.px = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
-##            self.vy = self.a[1]*t + self.v0[1]
-##            self.vx = self.a[0]*t + self.v0[0]
-##            self.v0[0],self.v0[1]=self.vx,self.vy
-##            self.p0[0],self.p0[1]=self.px,self.py
-##            print('Iteration: {}, Position: {}'.format(i,self.p0))
-##            self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-##            self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-##            if min(self.circle[1]) <0:
-##                self.v0[1] = -self.v0[1]*self.cor
-##                self.p0[0],self.p0[1] = self.px,0.01+1
-##                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-##                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-##                t=0.0
-##            if max(self.circle[1]) > 50:
-##                self.v0[1] = -self.v0[1]*self.cor
-##                self.p0[0],self.p0[1] = self.px,49.99-1
-##                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-##                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-##                t=0.0
-##            if min(self.circle[0]) <-30.0:
-##                self.v0[0] = -self.v0[0]*self.cor
-##                self.p0[0], self.p0[1] = -29.99+1, self.py
-##                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-##                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-##                t=0.0
-##            if max(self.circle[-0]) > 30:
-##                self.v0[0] = -self.v0[0]*self.cor
-##                self.p0[0], self.p0[1] = 29.99-1,self.py
-##                self.circle[0] = [f+self.p0[0] for f in self.ucircle[0]]
-##                self.circle[1] = [f+self.p0[1] for f in self.ucircle[1]]
-##                t=0
         for i in self.ports:
             if 'plot' in str(i):
                 self.send('done',i)
         print('done')
         
         return
-    def wall_collision(self):
-        pass
+    def wall_collision(self,shape,p1,p2):
+        pi,pf = list(shape.coords)
+        angle = np.rad2deg(np.arctan2(pf[-1] - pi[-1], pf[0] - pi[0]))
+        angle2 = np.rad2deg(np.arctan2(self.v0[1], self.v0[0]))
+        v = (self.v0[0]**2+self.v0[1]**2)**0.5
+        print('vi',v)
+        theta = angle - angle2
+        vbi, vbj = v*np.sin(np.deg2rad(theta)), v*np.cos(np.deg2rad(theta))
+        vbj = -vbj *self.cor
+        v = (vbi**2+vbj**2)**0.5
+        angle2 = np.rad2deg(np.arctan2(vbj, vbi))
+        angle1 =angle+angle2
+        
+        self.v0 = [-np.sin(np.deg2rad(angle1))*v, np.cos(np.deg2rad(angle1))*v]
+        print(pi,pf)
+        print(angle2, 'vf',v)
+        print(angle)
+        print('angle1', angle1)
+        print(self.v0)
 
 
 if __name__ == '__main__':
     cortix = Cortix(use_mpi=False)
     mod_list = []
-    plot = Plot()
+    box = geo.box(-30,0,30,50)
+    box = affinity.rotate(box,40)
+    bndry = []
+    c = 0
+    coords = list(box.exterior.coords)
+    #Parse the box(LineRing) to create a list of line obstacles
+    for f in coords:
+        try:
+            cr = geo.LineString([coords[c],coords[c+1]])
+        except IndexError:
+            cr = geo.LineString([coords[c],coords[-1]])
+            break
+        
+        bndry.append(cr)
+        c +=1
+    plot = Plot(bndry)
     cortix.add_module(plot)
     for i in range(3):
         time.sleep(0.01)
-        app = BouncingBall()
+        app = BouncingBall(bndry)
         mod_list.append(app)
         cortix.add_module(app)
                 

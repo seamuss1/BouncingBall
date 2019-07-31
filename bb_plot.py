@@ -8,9 +8,10 @@ from cortix.src.cortix_main import Cortix
 
 
 class Plot(Module):
-    def __init__(self):
+    def __init__(self,bndry = None):
         super().__init__()
         self.timestamp=str(datetime.datetime.now())
+        self.bndry = bndry
     def run(self):
         print('start plot')
         self.dic = {}
@@ -28,7 +29,8 @@ class Plot(Module):
                         self.plot()
                         return
                     continue
-                self.dic[str(i)].append(circle)
+                x,y = circle.exterior.xy
+                self.dic[str(i)].append([x,y])
             
 
 
@@ -40,8 +42,12 @@ class Plot(Module):
             linelist.append(self.linedic[line])
         return linelist
     def init(self,ax):
-        ax.set_xlim(-30,30)
-        ax.set_ylim(0,50)
+        for f in self.bndry:
+            x,y = f.xy
+            ax.plot(x,y,'r')
+            
+        ax.autoscale()
+        ax.relim()
         return ax
     def plot(self):
         print('starting plot')
