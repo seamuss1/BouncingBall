@@ -18,32 +18,39 @@ class BouncingBall(Module):
         super().__init__()
         self.bndry = bndry
         self.cor = 0.95
-        self.p0 = [random.randint(0,10),random.randint(10,30)]
+        self.p0 = [random.randint(-15,15),random.randint(10,25)]
         self.r=1.0
+        self.pnt = geo.point.Point(self.p0[0],self.p0[1])
+        self.circle = self.pnt.buffer(self.r)
         self.v0 = [random.uniform(-50,50),random.uniform(-10,10)]
         self.cor = 0.95
         self.a = (0,-9.81)
         self.timestamp=str(datetime.datetime.now())
-##        self.box = geo.box(-30,0,30,50)
-##        self.box = affinity.rotate(self.box,40)
-##        self.bndry = []
-##        c = 0
-##        coords = list(self.box.exterior.coords)
-##        #Parse the box(LineRing) to create a list of line obstacles
-##        for f in coords:
-##            try:
-##                cr = geo.LineString([coords[c],coords[c+1]])
-##            except IndexError:
-##                cr = geo.LineString([coords[c],coords[-1]])
-##                break
-##            
-##            self.bndry.append(cr)
-##            c +=1
+
             
     def run(self, time_int=0.01):
         t = time_int
         portdic = dict()
-        for i in range(300):
+        for i in self.ports:
+            if 'plot' not in str(i):
+                self.send(self.circle,i)
+        
+        for i in self.ports:
+            if 'plot' not in str(i):
+                portdic[str(i)] = self.recv(i)
+        check = False
+        while check==False:
+            check=True
+            for name in portdic:
+                shape = portdic[name]
+                if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
+                    self.p0 = [random.randint(-30,30),random.randint(0,50)]
+                    self.pnt = geo.point.Point(self.p0[0],self.p0[1])
+                    self.circle = self.pnt.buffer(self.r)
+                    check=False
+                    break
+        oshape = None    
+        for i in range(500):
             self.p0[1] = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
             self.p0[0] = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
             self.v0[1] = self.a[1]*t + self.v0[1]
@@ -63,6 +70,11 @@ class BouncingBall(Module):
                     portdic[str(i)] = ''
                 circle = self.recv(i)
                 portdic[str(i)] = circle
+            for name in portdic:
+                shape = portdic[name]
+                if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape) and shape != oshape:
+                    self.ball_collision(shape)
+                    oshape = shape
         for i in self.ports:
             if 'plot' in str(i):
                 self.send('done',i)
@@ -74,7 +86,6 @@ class BouncingBall(Module):
         angle = np.rad2deg(np.arctan2(pf[-1] - pi[-1], pf[0] - pi[0]))
         angle2 = np.rad2deg(np.arctan2(self.v0[1], self.v0[0]))
         v = (self.v0[0]**2+self.v0[1]**2)**0.5
-        print('vi',v)
         theta = angle - angle2
         vbi, vbj = v*np.sin(np.deg2rad(theta)), v*np.cos(np.deg2rad(theta))
         vbj = -vbj *self.cor
@@ -83,13 +94,25 @@ class BouncingBall(Module):
         angle1 =angle+angle2
         
         self.v0 = [-np.sin(np.deg2rad(angle1))*v, np.cos(np.deg2rad(angle1))*v]
-        print(pi,pf)
-        print(angle2, 'vf',v)
-        print(angle)
-        print('angle1', angle1)
-        print(self.v0)
-
-
+        print('Wall Collision')
+        
+    def ball_collision(self,shape):
+        [(x1,y1)],[(x2,y2)] = self.pnt.coords, shape.centroid.coords
+        print('Ball collision!',[round(f,2) for f in [x1,y1,x2,y2]])
+        angle = np.rad2deg(np.arctan2(y2 - y1, x2 - x1))
+        angle2 = np.rad2deg(np.arctan2(self.v0[1], self.v0[0]))
+        theta = angle + angle2
+        print('angle:',angle)
+        
+        v = (self.v0[0]**2+self.v0[1]**2)**0.5
+        vbi, vbj = v*np.sin(np.deg2rad(theta)), v*np.cos(np.deg2rad(theta))
+        vbj = -vbi *self.cor
+        v = (vbi**2+vbj**2)**0.5
+        angle2 = np.rad2deg(np.arctan2(vbj, vbi))
+        angle1 =angle-angle2
+        
+        self.v0 = [np.sin(np.deg2rad(angle1))*v, -np.cos(np.deg2rad(angle1))*v]
+        
 if __name__ == '__main__':
     cortix = Cortix(use_mpi=False)
     mod_list = []
@@ -110,7 +133,7 @@ if __name__ == '__main__':
         c +=1
     plot = Plot(bndry)
     cortix.add_module(plot)
-    for i in range(3):
+    for i in range(20):
         time.sleep(0.01)
         app = BouncingBall(bndry)
         mod_list.append(app)
@@ -131,6 +154,7 @@ if __name__ == '__main__':
             p.connect(p2)
             i.add_port(p)
             j.add_port(p2)
+    cortix.draw_network('network_graph.png')
     cortix.run()
     
             
