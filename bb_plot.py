@@ -5,13 +5,25 @@ import matplotlib.animation as animation
 from cortix.src.module import Module
 from cortix.src.port import Port
 from cortix.src.cortix_main import Cortix
-
+import shapely.geometry as geo
+import shapely.ops
 
 class Plot(Module):
-    def __init__(self,bndry = None):
+    def __init__(self,shape = None):
         super().__init__()
+        self.shape = shape
         self.timestamp=str(datetime.datetime.now())
-        self.bndry = bndry
+        self.bndry = []
+        coords = list(self.shape.exterior.coords)
+        #Parse the box(LineRing) to create a list of line obstacles
+        for c,f in enumerate(coords):
+            try:
+                cr = geo.LineString([coords[c],coords[c+1]])
+            except IndexError:
+                cr = geo.LineString([coords[c],coords[-1]])
+                break
+            
+            self.bndry.append(cr)
     def run(self):
         print('start plot')
         self.dic = {}
@@ -61,6 +73,6 @@ class Plot(Module):
         ani = animation.FuncAnimation(fig, self.update, frames=[f for f in range(len(self.dic[line]))],
                             init_func=lambda:self.init(ax), blit=False)
         plt.savefig('output_ball.png')
-        ani.save('bb_animation.mp4', fps=100)
+        ani.save('bb_animation.mp4', fps=20)
         print('goodbye')
         return
