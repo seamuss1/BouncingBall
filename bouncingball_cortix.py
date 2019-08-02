@@ -14,9 +14,10 @@ import shapely.ops
 from shapely import affinity
 
 class BouncingBall(Module):
-    def __init__(self,shape=None):
+    def __init__(self,shape=None, runtime=10):
         super().__init__()
         self.shape = shape
+        self.runtime = runtime
         self.bndry = []
         coords = list(self.shape.exterior.coords)
         #Parse the box(LineRing) to create a list of line obstacles
@@ -45,6 +46,7 @@ class BouncingBall(Module):
             
     def run(self, time_int=0.01):
         t = time_int
+        its = round(self.runtime/t)
         portdic = dict()
         for i in self.ports:
             if 'plot' not in str(i):
@@ -53,7 +55,7 @@ class BouncingBall(Module):
         for i in self.ports:
             if 'plot' not in str(i):
                 portdic[str(i)] = self.recv(i)
-        for i in range(1000):
+        for i in range(its):
             self.p0[1] = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
             self.p0[0] = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
             self.v0[1] = self.a[1]*t + self.v0[1]
@@ -132,32 +134,66 @@ class BouncingBall(Module):
 if __name__ == '__main__':
     cortix = Cortix(use_mpi=False)
     mod_list = []
-    box = geo.box(-30,0,30,50)
-    box = affinity.rotate(box,40)
-    
-    plot = Plot(shape=box)
+    shapes = ['triangle', 'squares', 'diamond']
+    while True:
+        print('Choose a shape: 1) Triangle, 2) Square, or 3) Diamond\n')
+        shape = input('>>>')
+        shape = shape.lower()
+        if shape == 'triangle' or shape =='1':
+            shape = geo.Polygon([(0, 0), (0, 60), (30, 30)])
+            break
+        if shape == 'square' or shape =='2':
+            shape = geo.box(-30,0,30,50)
+            break
+        if shape == 'triangle' or shape =='3':
+            shape = geo.box(-30,0,30,50)
+            shape = affinity.rotate(shape,45)
+            break
+        print('Input not recognized, try again')
+        
+    while True:
+        print('Choose the number of Bouncing Balls\n')
+        balls = input('>>>')
+        try:
+            balls = int(balls)
+            if balls > 1000:
+                print('Wow good luck')
+            elif balls > 0:
+                break
+            else:
+                print('Choose a better number')
+        except:
+            print('Entry invalid')
+    while True:
+        print('How many seconds is the simulation?\n')
+        secs = input('>>>')
+        try:
+            secs = int(balls)
+            if balls > 50000:
+                print('Wow good luck')
+            elif secs > 0:
+                break
+            else:
+                print('Choose a better number')
+        except:
+            print('Entry invalid')
+    plot = Plot(shape=shape)
     cortix.add_module(plot)
-    for i in range(20):
+    for i in range(balls):
         time.sleep(0.01)
-        app = BouncingBall(box)
+        app = BouncingBall(shape,runtime=secs)
         mod_list.append(app)
         cortix.add_module(app)
                 
     for c,i in enumerate(mod_list):
-        p1 = Port('plot-send{}'.format(c))
-        p3 = Port('plot-receive{}'.format(c))
-        i.add_port(p1)
-        plot.add_port(p3)
-        p1.connect(p3)
+        i.connect('plot-send{}'.format(c),plot.get_port('plot-receive{}'.format(c)))
         for j in mod_list:
             if i == j:
                 continue
             name = '{}{}'.format(i.timestamp,j.timestamp)
-            p  = Port(name = '{}{}'.format(i.timestamp,j.timestamp))
-            p2 = Port(name = '{}{}'.format(j.timestamp,i.timestamp))
-            p.connect(p2)
-            i.add_port(p)
-            j.add_port(p2)
+            name2 = '{}{}'.format(j.timestamp,i.timestamp)
+            j.connect(name, i.get_port(name2))
+            
     cortix.draw_network('network_graph.png')
     cortix.run()
     

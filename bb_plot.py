@@ -57,8 +57,9 @@ class Plot(Module):
         for f in self.bndry:
             x,y = f.xy
             ax.plot(x,y,'r')
-            
+        
         ax.autoscale()
+        ax.set_aspect( 'equal', adjustable='datalim')
         ax.relim()
         return ax
     def plot(self):
@@ -73,6 +74,6 @@ class Plot(Module):
         ani = animation.FuncAnimation(fig, self.update, frames=[f for f in range(len(self.dic[line]))],
                             init_func=lambda:self.init(ax), blit=False)
         plt.savefig('output_ball.png')
-        ani.save('bb_animation.mp4', fps=20)
+        ani.save('bb_animation.mp4', fps=60)
         print('goodbye')
         return
