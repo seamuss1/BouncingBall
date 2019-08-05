@@ -9,8 +9,9 @@ import shapely.geometry as geo
 import shapely.ops
 
 class Plot(Module):
-    def __init__(self,shape = None):
+    def __init__(self,shape = None, length=5):
         super().__init__()
+        self.length = length
         self.shape = shape
         self.timestamp=str(datetime.datetime.now())
         self.bndry = []
@@ -24,6 +25,7 @@ class Plot(Module):
                 break
             
             self.bndry.append(cr)
+
     def run(self):
         print('start plot')
         self.dic = {}
@@ -34,13 +36,14 @@ class Plot(Module):
                     continue
                 if str(i) not in self.dic:
                     self.dic[str(i)] = []
-                circle = self.recv(i)
-                if str(circle) == 'done':
+                messenger = self.recv(i) 
+                if str(messenger) == 'done':
                     c+=1
-                    if c >=3:
+                    if c >=self.length:
                         self.plot()
                         return
                     continue
+                circle = messenger.circle
                 x,y = circle.exterior.xy
                 self.dic[str(i)].append([x,y])
             

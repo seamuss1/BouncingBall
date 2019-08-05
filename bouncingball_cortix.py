@@ -42,15 +42,16 @@ class BouncingBall(Module):
         self.cor = 0.95
         self.a = (0,-9.81)
         self.timestamp=str(datetime.datetime.now())
-
-            
+        self.messenger = Messenger()
+        self.messenger.circle = self.circle
+        self.messenger.timestamp = self.timestamp
     def run(self, time_int=0.01):
         t = time_int
         its = round(self.runtime/t)
         portdic = dict()
         for i in self.ports:
             if 'plot' not in str(i):
-                self.send(self.circle,i)
+                self.send(self.messenger,i)
         
         for i in self.ports:
             if 'plot' not in str(i):
@@ -62,29 +63,34 @@ class BouncingBall(Module):
             self.v0[0] = self.a[0]*t + self.v0[0]
             self.pnt = geo.point.Point(self.p0[0],self.p0[1])
             self.circle = self.pnt.buffer(self.r)
-            check = False
-            while check==False:
-                check = True
-                for shape in self.bndry:
-                    if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
-                        self.wall_collision(shape)
-                        check = False
-                for name in portdic:
-                    shape = portdic[name]
-                    if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
+            self.messenger.circle = self.circle
+            
+            for shape in self.bndry:
+                if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
+                    self.wall_collision(shape)
+            for name in portdic:
+                shape = portdic[name].circle
+                ts = portdic[name].timestamp
+                if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
+                    print('collision1', i)
+                    self.ball_shift(shape)
+                    self.ball_collision(shape)
+                    self.messenger.collision.append(ts)
+                for line in portdic[name].collision:
+                    if self.timestamp == line:
+                        print('collision',i)
                         self.ball_collision(shape)
-                        check = False
-                break
-
             for i in self.ports:
-                self.send(self.circle,i)
+                self.send(self.messenger,i)
             for i in self.ports:
                 if 'plot' in str(i):
                     continue
                 if str(i) not in portdic:
                     portdic[str(i)] = ''
-                circle = self.recv(i)
-                portdic[str(i)] = circle
+                messenger = self.recv(i)
+                portdic[str(i)] = messenger
+            
+            self.messenger.collision = [] #Reset list of collisions
         for i in self.ports:
             if 'plot' in str(i):
                 self.send('done',i)
@@ -111,14 +117,17 @@ class BouncingBall(Module):
         
         self.v0 = [np.sin(angle1)*v, np.cos(angle1)*v]
         print('Wall Collision')
-        
-    def ball_collision(self,shape):
-        [(x1,y1)],[(x2,y2)] = self.pnt.coords, shape.centroid.coords
+
+    def ball_shift(self,shape):
         p1,p2 = shapely.ops.nearest_points(self.pnt,shape)
         angle = np.arctan2(p2.y - p1.y, p2.x - p1.x)
         d = shape.distance(self.pnt)
         self.p0 = [self.p0[0]-(self.r-d)*np.cos(angle),self.p0[1]-(self.r-d)*np.sin(angle)]
         self.circle = self.pnt.buffer(self.r)
+    
+    def ball_collision(self,shape):
+        p1,p2 = shapely.ops.nearest_points(self.pnt,shape)
+        angle = np.arctan2(p2.y - p1.y, p2.x - p1.x)        
         angle2 = np.arctan2(self.v0[1], self.v0[0])
         theta = angle2-angle
         v = (self.v0[0]**2+self.v0[1]**2)**0.5
@@ -130,6 +139,13 @@ class BouncingBall(Module):
         angle1 =angle4-angle
         
         self.v0 = [np.sin(angle1)*v, np.cos(angle1)*v]
+
+
+class Messenger:
+    def __init__(self, circle=None, collision = [], timestamp='0'):
+        self.circle = circle
+        self.collision = collision
+        self.timestamp = timestamp
         
 if __name__ == '__main__':
     cortix = Cortix(use_mpi=False)
@@ -168,8 +184,8 @@ if __name__ == '__main__':
         print('How many seconds is the simulation?\n')
         secs = input('>>>')
         try:
-            secs = int(balls)
-            if balls > 50000:
+            secs = int(secs)
+            if secs > 50000:
                 print('Wow good luck')
             elif secs > 0:
                 break
@@ -177,7 +193,7 @@ if __name__ == '__main__':
                 print('Choose a better number')
         except:
             print('Entry invalid')
-    plot = Plot(shape=shape)
+    plot = Plot(shape=shape, length=balls)
     cortix.add_module(plot)
     for i in range(balls):
         time.sleep(0.01)
