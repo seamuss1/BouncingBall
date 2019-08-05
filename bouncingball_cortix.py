@@ -45,8 +45,8 @@ class BouncingBall(Module):
         self.messenger = Messenger()
         self.messenger.circle = self.circle
         self.messenger.timestamp = self.timestamp
-    def run(self, time_int=0.01):
-        t = time_int
+    def run(self, state_comm=None, idx_comm=None):
+        t = 0.01
         its = round(self.runtime/t)
         portdic = dict()
         for i in self.ports:
@@ -146,6 +146,8 @@ class Messenger:
         self.circle = circle
         self.collision = collision
         self.timestamp = timestamp
+
+
         
 if __name__ == '__main__':
     cortix = Cortix(use_mpi=False)
@@ -212,5 +214,7 @@ if __name__ == '__main__':
             
     cortix.draw_network('network_graph.png')
     cortix.run()
+    print('bye')
+    
     
             
