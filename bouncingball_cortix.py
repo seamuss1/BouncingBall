@@ -46,6 +46,7 @@ class BouncingBall(Module):
         self.messenger.circle = self.circle
         self.messenger.timestamp = self.timestamp
     def run(self, state_comm=None, idx_comm=None):
+        state_comm.put((idx_comm,self.state))
         t = 0.01
         its = round(self.runtime/t)
         portdic = dict()
@@ -72,21 +73,21 @@ class BouncingBall(Module):
                 shape = portdic[name].circle
                 ts = portdic[name].timestamp
                 if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
-                    print('collision1', i)
                     self.ball_shift(shape)
                     self.ball_collision(shape)
                     self.messenger.collision.append(ts)
+                    
+                    continue
+                
                 for line in portdic[name].collision:
+                    
                     if self.timestamp == line:
-                        print('collision',i)
                         self.ball_collision(shape)
             for i in self.ports:
                 self.send(self.messenger,i)
             for i in self.ports:
                 if 'plot' in str(i):
                     continue
-                if str(i) not in portdic:
-                    portdic[str(i)] = ''
                 messenger = self.recv(i)
                 portdic[str(i)] = messenger
             
@@ -95,6 +96,7 @@ class BouncingBall(Module):
             if 'plot' in str(i):
                 self.send('done',i)
         print('done')
+        
         
         return
     def wall_collision(self,shape):
@@ -123,8 +125,9 @@ class BouncingBall(Module):
         angle = np.arctan2(p2.y - p1.y, p2.x - p1.x)
         d = shape.distance(self.pnt)
         self.p0 = [self.p0[0]-(self.r-d)*np.cos(angle),self.p0[1]-(self.r-d)*np.sin(angle)]
+        self.pnt = geo.point.Point(self.p0[0],self.p0[1])
         self.circle = self.pnt.buffer(self.r)
-    
+        
     def ball_collision(self,shape):
         p1,p2 = shapely.ops.nearest_points(self.pnt,shape)
         angle = np.arctan2(p2.y - p1.y, p2.x - p1.x)        
@@ -136,7 +139,7 @@ class BouncingBall(Module):
         v = (vbi**2+vbj**2)**0.5
         print('Ball collision! Velocity:', v)
         angle4 = np.arctan2(vbj, vbi)
-        angle1 =angle4-angle
+        angle1 = angle4-angle
         
         self.v0 = [np.sin(angle1)*v, np.cos(angle1)*v]
 

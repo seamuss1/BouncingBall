@@ -27,6 +27,7 @@ class Plot(Module):
             self.bndry.append(cr)
 
     def run(self, state_comm=None, idx_comm=None):
+        state_comm.put((idx_comm,self.state))
         print('start plot')
         self.dic = {}
         c = 0
