@@ -30,7 +30,7 @@ class BouncingBall(Module):
         self.cor = 0.25
         bn = self.shape.bounds
         self.r=1.0
-        for i in range(100):
+        for i in range(100): #Attempt to spawn ball within boundary
             self.p0 = [random.uniform(bn[0],bn[2]),random.uniform(bn[1],bn[3])]
             self.pnt = geo.point.Point(self.p0[0],self.p0[1])
             self.circle = self.pnt.buffer(self.r)
@@ -42,6 +42,8 @@ class BouncingBall(Module):
         self.m = 1
         self.KE = 0.5*self.m*((self.v0[0]**2+self.v0[1]**2)**0.5)**2
         self.timestamp=str(datetime.datetime.now())
+
+        #Customize container class that is sent to other modules
         self.messenger = Messenger()
         self.messenger.circle = self.circle
         self.messenger.timestamp = self.timestamp
@@ -54,7 +56,7 @@ class BouncingBall(Module):
         t = 0.01
         its = round(self.runtime/t)
         portdic = dict()
-        for i in self.ports:
+        for i in self.ports: #Send initial properties
             if 'plot' not in str(i):
                 self.send(self.messenger,i)
         
@@ -62,46 +64,46 @@ class BouncingBall(Module):
             if 'plot' not in str(i):
                 portdic[str(i)] = self.recv(i)
         for i in range(its):
+            #Gravity calculations for timestep 
             self.p0[1] = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
             self.p0[0] = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
             self.v0[1] = self.a[1]*t + self.v0[1]
             self.v0[0] = self.a[0]*t + self.v0[0]
+            #Update position and velocity variables
             self.pnt = geo.point.Point(self.p0[0],self.p0[1])
             self.circle = self.pnt.buffer(self.r)
             self.messenger.circle = self.circle
             self.messenger.v = self.v0
             self.messenger.p = self.p0
-            for shape in self.bndry:
+            
+            for shape in self.bndry: #Detects collision with boundary
                 if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
                     self.wall_collision(shape)
-            for name in portdic:
+            for name in portdic: #Detects collision with other objects
                 messenger = portdic[name]
                 shape = portdic[name].circle
                 ts = portdic[name].timestamp
-                for line in portdic[name].collision:
+                for line in portdic[name].collision: #Undetected Collisions received as a message
                     if self.timestamp == line:
                         self.ball_collision(messenger)
                         if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
                             self.ball_shift(shape)
-
+                #Reacts to intersection between this object and another
                 if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
                     self.ball_collision(messenger)
                     self.ball_shift(shape)
                     self.messenger.collision.append(ts)
                 
-##            self.messenger.circle = self.circle
-##            self.messenger.v = self.v0
-##            self.messenger.p = self.p0
-            for i in self.ports:
+            for i in self.ports: #Send and receive messages for each timestep
                 self.send(self.messenger,i)
             for i in self.ports:
-                if 'plot' in str(i):
+                if 'plot' in str(i): #Not receiving messages from plotting
                     continue
                 messenger = self.recv(i)
                 portdic[str(i)] = messenger
             
             self.messenger.collision = [] #Reset list of collisions
-        for i in self.ports:
+        for i in self.ports: #Send 'done' string to plot module as end condition
             if 'plot' in str(i):
                 self.send('done',i)
         print('done')
@@ -163,7 +165,9 @@ class Messenger:
         self.r = 1
         self.v = []
         self.p = []
-        
+
+
+#Example driver script        
 if __name__ == '__main__':
     cortix = Cortix(use_mpi=False)
     mod_list = []
