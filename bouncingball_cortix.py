@@ -68,7 +68,9 @@ class BouncingBall(Module):
             self.v0[0] = self.a[0]*t + self.v0[0]
             self.pnt = geo.point.Point(self.p0[0],self.p0[1])
             self.circle = self.pnt.buffer(self.r)
-            
+            self.messenger.circle = self.circle
+            self.messenger.v = self.v0
+            self.messenger.p = self.p0
             for shape in self.bndry:
                 if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
                     self.wall_collision(shape)
@@ -76,20 +78,20 @@ class BouncingBall(Module):
                 messenger = portdic[name]
                 shape = portdic[name].circle
                 ts = portdic[name].timestamp
-                if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
-                    self.ball_collision(messenger)
-                    #self.ball_shift(shape)
-                    self.messenger.collision.append(ts)
-                    continue
-                
                 for line in portdic[name].collision:
-
                     if self.timestamp == line:
                         self.ball_collision(messenger)
-                        
-            self.messenger.circle = self.circle
-            self.messenger.v = self.v0
-            self.messenger.p = self.p0
+                        if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
+                            self.ball_shift(shape)
+
+                if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
+                    self.ball_collision(messenger)
+                    self.ball_shift(shape)
+                    self.messenger.collision.append(ts)
+                
+##            self.messenger.circle = self.circle
+##            self.messenger.v = self.v0
+##            self.messenger.p = self.p0
             for i in self.ports:
                 self.send(self.messenger,i)
             for i in self.ports:
@@ -124,13 +126,13 @@ class BouncingBall(Module):
         angle1 = angle4 - angle3
         
         self.v0 = [np.sin(angle1)*v, np.cos(angle1)*v]
-        print('Wall Collision')
+        print('Wall Collision, V:', v)
 
     def ball_shift(self,shape):
         p1,p2 = shapely.ops.nearest_points(self.pnt,shape)
         angle = np.arctan2(p2.y - p1.y, p2.x - p1.x)
         d = shape.distance(self.pnt)
-        self.p0 = [self.p0[0]-(self.r*1.05-d)*np.cos(angle),self.p0[1]-(self.r*1.05-d)*np.sin(angle)]
+        self.p0 = [self.p0[0]-(self.r-d)*np.cos(angle),self.p0[1]-(self.r-d)*np.sin(angle)]
         self.pnt = geo.point.Point(self.p0[0],self.p0[1])
         self.circle = self.pnt.buffer(self.r)
         
@@ -145,11 +147,13 @@ class BouncingBall(Module):
         v = (self.v0[0]**2+self.v0[1]**2)**0.5
         
         #Equation source: https://en.wikipedia.org/wiki/Elastic_collision
-        vpx=((v*np.cos(angle2- angle)*(self.m-m)+2*m*v3*np.cos(phi-angle))/(self.m+m))*np.cos(angle)+v*np.sin(angle2-angle)*np.cos(angle+np.pi/2)
-        vpy=((v*np.cos(angle2- angle)*(self.m-m)+2*m*v3*np.cos(phi-angle))/(self.m+m))*np.sin(angle)+v*np.sin(angle2-angle)*np.cos(angle+np.pi/2)
-        
+        vpx=((v*np.cos(angle2-angle)*(self.m-m)+2*m*v3*np.cos(phi-angle))/(self.m+m))*np.cos(angle)+v*np.sin(angle2-angle)*np.cos(angle+np.pi/2)
+        vpy=((v*np.cos(angle2-angle)*(self.m-m)+2*m*v3*np.cos(phi-angle))/(self.m+m))*np.sin(angle)+v*np.sin(angle2-angle)*np.cos(angle+np.pi/2)
+        vp = (vpx**2+vpy**2)**0.5
         self.v0 = [vpx,vpy]
+        print('Ball Collision, V:', vp)
 
+        
 class Messenger:
     def __init__(self, circle=None, collision = [], timestamp='0'):
         self.circle = circle
