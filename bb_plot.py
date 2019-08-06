@@ -11,6 +11,11 @@ import shapely.ops
 class Plot(Module):
     def __init__(self,shape = None, length=5):
         super().__init__()
+        self.filetime = str(datetime.datetime.now())[:10]
+        self.dir = '/tmp/bb'
+        if not os.path.exists(self.dir):
+            os.makedirs(self.dir)
+        self.filename = os.path.join(self.dir,'bb_data'+self.filetime+'.csv')
         self.length = length
         self.shape = shape
         self.timestamp=str(datetime.datetime.now())
