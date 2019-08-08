@@ -31,8 +31,7 @@ class Plot(Module):
             
             self.bndry.append(cr)
 
-    def run(self, state_comm=None, idx_comm=None):
-        state_comm.put((idx_comm,self.state))
+    def run(self):
         print('start plot')
         self.dic = {}
         c = 0
@@ -83,6 +82,6 @@ class Plot(Module):
         ani = animation.FuncAnimation(fig, self.update, frames=[f for f in range(len(self.dic[line]))],
                             init_func=lambda:self.init(ax), blit=False)
         plt.savefig('output_ball.png')
-        ani.save('bb_animation.mp4', fps=60)
+        ani.save('bb_animation.mp4', fps=100)
         print('goodbye')
         return
