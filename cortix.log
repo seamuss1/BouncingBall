@@ -1,18 +1,12 @@
-[23522] 2019-08-05 14:47:06,370 - cortix - INFO - Created Cortix object 
-_____________________________________________________________________________
-                             L A U N C H I N G                               
-_____________________________________________________________________________
-      ...                                        s       .     (TAAG Fraktur)
-   xH88"`~ .x8X                                 :8      @88>
- :8888   .f"8888Hf        u.      .u    .      .88      %8P      uL   ..
-:8888>  X8L  ^""`   ...ue888b   .d88B :@8c    :888ooo    .     .@88b  @88R
-X8888  X888h        888R Y888r ="8888f8888r -*8888888  .@88u  ""Y888k/"*P
-88888  !88888.      888R I888>   4888>"88"    8888    888E`    Y888L
-88888   %88888      888R I888>   4888> "      8888      888E      8888
-88888 `> `8888>     888R I888>   4888>        8888      888E      `888N
-`8888L %  ?888   ! u8888cJ888   .d888L .+    .8888Lu=   888E   .u./"888&
- `8888  `-*""   /   "*888*P"    ^"8888*"     ^%888*     888&  d888" Y888*"
-   "888.      :"      "Y"          "Y"         "Y"      R888" ` "Y   Y"
-     `""***~"`                                           ""
-                             https://cortix.org                              
-_____________________________________________________________________________
+[20237] 2019-08-09 17:01:09,677 - cortix - INFO - Created Cortix object
+[20237] 2019-08-09 17:01:17,951 - cortix - INFO - Launching Module <plot_multi.Plot object at 0x701b8f30>
+[20237] 2019-08-09 17:01:17,969 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x701b8fd0>
+[20237] 2019-08-09 17:01:17,987 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x70118a30>
+[20237] 2019-08-09 17:01:18,006 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x7011e470>
+[20237] 2019-08-09 17:01:18,028 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x7011ee90>
+[20237] 2019-08-09 17:01:18,054 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x70124930>
+[20237] 2019-08-09 17:01:18,096 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x7012b390>
+[20237] 2019-08-09 17:01:18,165 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x7012bd70>
+[20237] 2019-08-09 17:01:18,212 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x701307b0>
+[20237] 2019-08-09 17:01:18,298 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x701248d0>
+[20237] 2019-08-09 17:01:18,437 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x7012b330>

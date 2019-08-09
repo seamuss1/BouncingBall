@@ -40,21 +40,21 @@ class Plot(Module):
             for i in self.ports:
                 if not 'plot' in str(i):
                     continue
-                dic = self.recv(i)
-                if isinstance(dic,str):
+                lis = self.recv(i)
+                if isinstance(lis,str):
                     c+=1
                     if c >=self.length:
                         self.plot()
                         return
                     continue
                 
-                for line in dic:
-                    if dic[line].name not in self.dic:
-                        self.dic[dic[line].name]=[]
-                    self.dic[dic[line].name].append(dic[line].circle)
+                for line in lis:
+                    if line.name not in self.dic:
+                        self.dic[line.name]=[]
+                    self.dic[line.name].append(line.circle)
     def update(self,i):
         linelist = []
-        for line in self.dic:    
+        for line in self.dic:
             x,y = self.dic[line][i].exterior.xy
             self.linedic[line].set_data(x,y)
             linelist.append(self.linedic[line])

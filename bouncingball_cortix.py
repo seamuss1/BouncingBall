@@ -51,7 +51,6 @@ class BouncingBall(Module):
         self.messenger.p = self.p0
         
     def run(self):
-        #state_comm.put((idx_comm,self.state))
         t = 0.01
         self.elapsed, oe = 0,0
         its = round(self.runtime/t)
