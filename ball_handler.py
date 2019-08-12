@@ -18,6 +18,7 @@ class BallHandler(Module):
         self.timestamp=str(datetime.datetime.now())
         for i in range(self.balls):
             ball = BouncingBall(self.shape)
+            ball.r = 0.1
             self.local_balls.append(ball)
             self.local_messengers.append(ball.messenger)
     def run(self):
@@ -70,11 +71,12 @@ if __name__ == '__main__':
     shape = geo.box(-30,0,30,50)
     
     plot = Plot(shape=shape, modules=10)
+    plot.fps = 10
     cortix.add_module(plot)
 
     for i in range(10):
         time.sleep(0.01)
-        app = BallHandler(shape, balls=10,runtime = 3)
+        app = BallHandler(shape, balls=10,runtime = 1)
         mod_list.append(app)
         cortix.add_module(app)
         

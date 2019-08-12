@@ -1,17 +1,12 @@
-[28481] 2019-08-11 22:39:51,782 - cortix - INFO - Created Cortix object
-[28481] 2019-08-11 22:40:43,701 - cortix - INFO - Launching Module <__main__.Plot object at 0xb2694990>
-[28481] 2019-08-11 22:40:43,710 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xb2694970>
-[28481] 2019-08-11 22:40:43,722 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xb26b9bd0>
-[28481] 2019-08-11 22:40:43,734 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xb262ce70>
-[28481] 2019-08-11 22:40:43,749 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xb264a130>
-[28481] 2019-08-11 22:40:43,764 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xb2660430>
-[28481] 2019-08-11 22:40:43,777 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xaf53a6f0>
-[28481] 2019-08-11 22:40:43,822 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xaf552950>
-[28481] 2019-08-11 22:40:43,918 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xaf568bf0>
-[28481] 2019-08-11 22:40:43,986 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xb26603d0>
-[28481] 2019-08-11 22:40:44,071 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xaf53a690>
-[28481] 2019-08-11 22:40:44,175 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xaf4b23b0>
-[28481] 2019-08-11 22:40:44,211 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xaf4c7650>
-[28481] 2019-08-11 22:40:44,433 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xaf4de8f0>
-[28481] 2019-08-11 22:40:44,468 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xaf473b90>
-[28481] 2019-08-11 22:40:44,522 - cortix - INFO - Launching Module <__main__.BallHandler object at 0xaf48be30>
+[16820] 2019-08-12 16:18:08,181 - cortix - INFO - Created Cortix object
+[16820] 2019-08-12 16:18:15,759 - cortix - INFO - Launching Module <__main__.Plot object at 0x6e62db50>
+[16820] 2019-08-12 16:18:15,782 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e62db10>
+[16820] 2019-08-12 16:18:15,805 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e64f8b0>
+[16820] 2019-08-12 16:18:15,830 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e5bc270>
+[16820] 2019-08-12 16:18:15,856 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e5c6c10>
+[16820] 2019-08-12 16:18:15,919 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e5d85b0>
+[16820] 2019-08-12 16:18:15,958 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e5e3f70>
+[16820] 2019-08-12 16:18:16,015 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e573970>
+[16820] 2019-08-12 16:18:16,111 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e584330>
+[16820] 2019-08-12 16:18:16,183 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e5d85d0>
+[16820] 2019-08-12 16:18:16,293 - cortix - INFO - Launching Module <__main__.BallHandler object at 0x6e5e3f90>

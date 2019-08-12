@@ -246,11 +246,13 @@ if __name__ == '__main__':
     mod_list = []
     shape = geo.box(-30,0,30,50)
     plot = Plot(shape=shape, modules=1)
+    plot.fps = 10
     cortix.add_module(plot)
-    
-    app = BouncingBall(shape,runtime=2,balls=3)
-    mod_list.append(app)
-    cortix.add_module(app)
+    for i in range(5):
+        app = BouncingBall(shape,runtime=2,balls=10)
+        app.r = 0.01
+        mod_list.append(app)
+        cortix.add_module(app)
                 
     for c,i in enumerate(mod_list):
         i.connect('plot-send{}'.format(c),plot.get_port('plot-receive{}'.format(c)))

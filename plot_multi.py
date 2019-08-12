@@ -14,6 +14,7 @@ class Plot(Module):
         self.filetime = str(datetime.datetime.now())[:10]
         self.dir = '/tmp/bb'
         self.length = 0
+        self.fps = 60
         if not os.path.exists(self.dir):
             os.makedirs(self.dir)
         self.filename = os.path.join(self.dir,'bb_data'+self.filetime+'.csv')
@@ -81,6 +82,6 @@ class Plot(Module):
         ani = animation.FuncAnimation(fig, self.update, frames=[f for f in range(len(self.dic[line]))],
                             init_func=lambda:self.init(ax), blit=False)
         plt.savefig('output_ball.png')
-        ani.save('bb_animation.mp4', fps=60)
+        ani.save('bb_animation.mp4', fps=self.fps)
         print('goodbye')
         return
