@@ -160,10 +160,10 @@ class BouncingBall:
         #Parse the box(LineRing) to create a list of line obstacles
         for c,f in enumerate(coords):
             try:
-                cr = geo.LineString([coords[c],coords[c+1]]).buffer(0.5)
+                cr = geo.LineString([coords[c],coords[c+1]])
                 self.bndic[str(cr)] = geo.LineString([coords[c],coords[c+1]])
             except IndexError:
-                cr = geo.LineString([coords[c],coords[-1]]).buffer(0.5)
+                cr = geo.LineString([coords[c],coords[-1]])
                 self.bndic[str(cr)] = geo.LineString([coords[c],coords[-1]])
                            
                 break
@@ -171,7 +171,7 @@ class BouncingBall:
             self.bndry.append(cr)
         if bn==None:
             bn = self.shape.bounds
-        self.r=0.1
+        self.r=1
         for i in range(100): #Attempt to spawn ball within boundary
             self.p0 = [random.uniform(bn[0],bn[2]),random.uniform(bn[1],bn[3])]
             self.pnt = geo.point.Point(self.p0[0],self.p0[1])
@@ -221,11 +221,12 @@ class BouncingBall:
             name = ball.name
             if self.name==ball.name:
                 continue
-            for line in ball.collision: #Undetected Collisions received as a message
+            for c,line in enumerate(ball.collision): #Undetected Collisions received as a message
                 if self.name == line:
                     self.ball_collision(ball)
                     if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
                         self.ball_shift(shape)
+                    del ball.collision[c]
             #Reacts to intersection between this object and another
             if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
                 self.ball_collision(ball)
@@ -234,13 +235,10 @@ class BouncingBall:
 
         self.messenger.circle = self.circle
         self.messenger.p = self.p0
-        
-        self.messenger.collision = [] #Reset list of collisions
 
         return self.collisions
 
     def wall_collision(self,shape):
-        shape = self.bndic[str(shape)]
         
         p1,p2 = shapely.ops.nearest_points(self.pnt,shape)
         angle3 = np.arctan2(p2.y - p1.y, p2.x - p1.x)
@@ -300,17 +298,17 @@ class Simulation:
     def __init__(self):
 
         self.procs = 10
-        self.runtime=0.5
+        self.runtime=30
         self.balls = 100
         self.balleach = int(self.balls/self.procs)
         self.cortix = Cortix(use_mpi=False)
         self.mod_list = []
-        self.shape = geo.Polygon([(0, 0), (0, 30), (30, 30),(30,23),
-                                  (60,23),(60,-20),(85,-20),(85,-40),
-                                  (45,-40),(45,-20),(54,-20),(54,17),
-                                  (30,17),(30,0)])
+        self.shape = geo.Polygon([(0, 0), (0, 30), (30, 30),(30,25),
+                                  (65,25),(65,-20),(85,-20),(85,-40),
+                                  (45,-40),(45,-20),(49,-20),(49,15),
+                                  (30,15),(30,0)])
         self.plot = Plot(self.shape,modules=self.procs,runtime=self.runtime)
-        self.plot.fps = 10
+        self.plot.fps = 100
         self.cortix.add_module(self.plot)
 
         for i in range(self.procs):
