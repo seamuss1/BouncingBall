@@ -251,7 +251,7 @@ class Simulation:
 ##            file.write('Number,Collisions/Sec\n')
                        
                        
-        n_list = [1000,3000,15,30,45,60,75,500,600,1200,2400,3200,4200,5400]
+        n_list = [15,30,15,60,75,500,600,1200,2400,3200,4200,5400]
         for i in n_list:
             print('starting:',i,'balls')
             procs = 15
@@ -282,6 +282,6 @@ class Simulation:
                     j.connect(name, i.get_port(name2))
                     
             cortix.run()
-        
+            time.sleep(5)
 if __name__ == '__main__':
     Simulation()
