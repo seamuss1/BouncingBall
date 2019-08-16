@@ -1,7 +1,7 @@
 import os, time, datetime, threading, random, sys, string
 import numpy as np
 from cortix.src.module import Module
-from cortix.src.port import Port
+from cortix.src.network import Network
 from cortix.src.cortix_main import Cortix
 import shapely.geometry as geo
 import shapely.ops
@@ -143,10 +143,10 @@ class Plot(Module):
             if line not in self.linedic:
                 self.linedic[line], = ax.plot([],[],self.colordic[line])
         print('creating animation')
-##        ani = animation.FuncAnimation(fig, self.update, frames=[f for f in range(len(self.dic[line]))],
-##                            init_func=lambda:self.init(ax), blit=False)
-##        plt.savefig('output_ball.png')
-##        ani.save('bb_animation.mp4', fps=self.fps)
+        ani = animation.FuncAnimation(fig, self.update, frames=[f for f in range(len(self.dic[line]))],
+                            init_func=lambda:self.init(ax), blit=False)
+        plt.savefig('output_ball.png')
+        ani.save('bb_animation.mp4', fps=self.fps)
         print('goodbye')
         return
 
@@ -257,7 +257,6 @@ class BouncingBall:
         angle1 = angle4 - angle3
         self.collisions+=1
         self.v0 = [np.sin(angle1)*v, np.cos(angle1)*v]
-        print('wall collision')
         
     def ball_shift(self,shape):
         p1,p2 = shapely.ops.nearest_points(self.pnt,shape)
@@ -316,9 +315,11 @@ class Simulation:
     def run(self):
         for c,i in enumerate(self.n_list):
             self.cortix = Cortix(use_mpi=False)
+            self.net = Network()
+            self.cortix.network = self.net
             self.plot = Plot(self.shape,modules=self.procs,runtime=self.runtime)
             self.plot.fps = self.fps
-            self.cortix.add_module(self.plot)
+            self.net.add_module(self.plot)
             print(c,'iterations')
             self.balls = i
             self.balleach = int(self.balls/self.procs)
@@ -329,24 +330,23 @@ class Simulation:
                 if i>=5:
                     app = BallHandler(self.shape, balls=self.balleach,runtime = self.runtime,bn=[43,-38,83,-22],color='b')
                 self.mod_list.append(app)
-                self.cortix.add_module(app)
+                self.net.add_module(app)
             for c,i in enumerate(self.mod_list):
-                i.connect('plot-send{}'.format(c),self.plot.get_port('plot-receive{}'.format(c)))
+                self.net.connect([i,'plot-send{}'.format(c)],[self.plot,'plot-receive{}'.format(c)])
                 for j in self.mod_list:
                     if i == j:
                         continue
                     name = '{}{}'.format(i.name,j.name)
                     name2 = '{}{}'.format(j.name,i.name)
-                    j.connect(name, i.get_port(name2))
+                    self.net.connect([i,name], [j,name2])
             self.cortix.run()
-            for mod in self.cortix.modules:
-                for port in mod.ports:
-                    port.q.close()
             del self.cortix
             print('finished sim')
 
 if __name__ == '__main__':
     sim = Simulation()
-    sim.runtime = 0.5
-    sim.n_list = [15,20,25,30,15,15,20,25,30,15,15,20,25,30,15,15]
+    sim.runtime = 10
+    sim.fps = 30
+    sim.procs = 10
+    sim.n_list = [80]
     sim.run()
