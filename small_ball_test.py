@@ -11,23 +11,28 @@ import pandas as pd
 
 class BallHandler(Module):
 
-    def __init__(self,shape=None, balls= 5, runtime=3,bn=None,color='b'):
+    def __init__(self,shape=None, balls= 5, runtime=3,color='b'):
         super().__init__()
+        self.color = color
         self.shape = shape
         self.balls = balls
         self.runtime = runtime
         self.local_balls = []
         self.local_messengers = []
         self.collisions = 0
+        self.r = 1
+        self.t_step = 0.01
         self.timestamp=str(datetime.datetime.now())
-        self.elapsed, oe = 0,0
+        self.elapsed, self.oe = 0,0
         self.name = ''.join([random.choice(string.ascii_lowercase+string.digits) for f in range(10)])
+        
+    def run(self):
+        t = 0.001
         for i in range(self.balls):
-            ball = BouncingBall(self.shape,bn,color)
+            ball = BouncingBall(shape=self.shape,color=self.color,r=self.r)
+            ball.t_step = self.t_step
             self.local_balls.append(ball)
             self.local_messengers.append(ball.messenger)
-    def run(self):
-        t = 0.01
         
         its = round(self.runtime/t)
 
@@ -46,6 +51,10 @@ class BallHandler(Module):
                     ball_list.append(ball)
         
         for i in range(its):
+            self.elapsed += t
+            if round(self.elapsed) != self.oe:
+                print('Elapsed Time:', round(self.elapsed))
+                self.oe=round(self.elapsed)
             for ball in self.local_balls:
                 collision = ball.run(ball_list)
                 self.collisions+=collision
@@ -102,7 +111,7 @@ class Plot(Module):
             for i in self.ports:
                 if not 'plot' in str(i):
                     continue
-                lis = self.recv(i)
+                lis = self.recv(i,timeout=4)
                 if isinstance(lis,str):
                     c+=1
                     self.color=lis
@@ -128,6 +137,9 @@ class Plot(Module):
         return linelist
     
     def init(self,ax):
+##        linelist = []
+##        for line in self.dic:
+##            linelist.append(self.linedic[line])
         x,y = self.shape.exterior.xy
         ax.plot(x,y,'black')
         ax.autoscale()
@@ -145,20 +157,21 @@ class Plot(Module):
                 self.linedic[line], = ax.plot([],[],self.colordic[line][0])
         print('creating animation')
         ani = animation.FuncAnimation(fig, self.update, frames=[f for f in range(len(self.dic[line]))],
-                            init_func=lambda:self.init(ax), blit=False)
+                            init_func=lambda:self.init(ax))
         plt.savefig('output_ball.png')
         ani.save('bb_animation.mp4', fps=self.fps)
         print('goodbye')
         return
 
 class BouncingBall:
-    def __init__(self,shape,bn=None,color='b'):
+    def __init__(self,shape,bn=None,color='b',r=1):
         super().__init__()
         self.shape = shape
 
         self.bndry = []
         coords = list(self.shape.exterior.coords)
         self.bndic = dict()
+        self.t_step = 0.01
         #Parse the box(LineRing) to create a list of line obstacles
         for c,f in enumerate(coords):
             try:
@@ -173,7 +186,7 @@ class BouncingBall:
             self.bndry.append(cr)
         if bn==None:
             bn = self.shape.bounds
-        self.r=1
+        self.r=r
         for i in range(100): #Attempt to spawn ball within boundary
             self.p0 = [random.uniform(bn[0],bn[2]),random.uniform(bn[1],bn[3])]
             self.pnt = geo.point.Point(self.p0[0],self.p0[1])
@@ -192,7 +205,7 @@ class BouncingBall:
         #Customize container class that is sent to other modules
         self.messenger = Messenger()
         self.messenger.timestamp = self.timestamp
-        self.messenger.m,self.messenger.r = 1,1
+        self.messenger.m,self.messenger.r = self.m,self.r
         self.messenger.v = self.v0
         self.messenger.p = self.p0
         self.messenger.name = self.name
@@ -200,7 +213,7 @@ class BouncingBall:
     def run(self, ball_list):
         self.ball_list = ball_list
         self.collisions=0
-        t = 0.01
+        t = self.t_step
 
         #Gravity calculations for timestep
         self.p0[1] = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
@@ -298,7 +311,6 @@ class Messenger:
         self.p = [0.0,0.0]
         self.name = ''
         self.color = 'b'
-
         
 class Simulation:
     def __init__(self):
@@ -306,9 +318,9 @@ class Simulation:
 
         self.procs = 15
         self.runtime=30
+        self.t_step = 0.01
         
-        
-        
+        self.r=1
         self.mod_list = []
         self.shape = geo.Polygon([(0, 0), (0, 30), (30, 30),(30,0)])
 
@@ -316,7 +328,7 @@ class Simulation:
 
     def run(self):
         for c,i in enumerate(self.n_list):
-            self.cortix = Cortix(use_mpi=False)
+            self.cortix = Cortix(use_mpi=False,log_filename = 'testing')
             self.net = Network()
             self.cortix.network = self.net
             self.plot = Plot(self.shape,modules=self.procs,runtime=self.runtime)
@@ -328,6 +340,8 @@ class Simulation:
             self.mod_list = []
             for i in range(self.procs):    
                 app = BallHandler(self.shape, balls=self.balleach,runtime = self.runtime)
+                app.r=self.r
+                app.t_step = 0.01
                 self.mod_list.append(app)
                 self.net.add_module(app)
             for c,i in enumerate(self.mod_list):
@@ -344,8 +358,10 @@ class Simulation:
 
 if __name__ == '__main__':
     sim = Simulation()
-    sim.runtime = 10
+    sim.runtime = 0.1
+    sim.r = 1
     sim.fps = 30
-    sim.procs = 15
-    sim.n_list = [30]
+    sim.t_step = 0.01
+    sim.procs = 3
+    sim.n_list = [9]
     sim.run()
