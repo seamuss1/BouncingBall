@@ -6,6 +6,8 @@ from cortix.src.cortix_main import Cortix
 import shapely.geometry as geo
 import shapely.ops
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.animation as animation
 import pandas as pd
 
@@ -27,14 +29,14 @@ class BallHandler(Module):
         self.name = ''.join([random.choice(string.ascii_lowercase+string.digits) for f in range(10)])
         
     def run(self):
-        t = 0.001
+        t = self.t_step
         for i in range(self.balls):
             ball = BouncingBall(shape=self.shape,color=self.color,r=self.r)
             ball.t_step = self.t_step
             self.local_balls.append(ball)
             self.local_messengers.append(ball.messenger)
         
-        its = round(self.runtime/t)
+        its = round(self.runtime/self.t_step)
 
         ball_list = []
         
@@ -52,15 +54,17 @@ class BallHandler(Module):
         
         for i in range(its):
             self.elapsed += t
-            if round(self.elapsed) != self.oe:
-                print('Elapsed Time:', round(self.elapsed))
-                self.oe=round(self.elapsed)
+##            if round(self.elapsed,1) != self.oe:
+##                print('Elapsed Time:', round(self.elapsed,1))
+##                self.oe=round(self.elapsed,1)
             for ball in self.local_balls:
                 collision = ball.run(ball_list)
                 self.collisions+=collision
                 
             for i in self.ports: #Send and receive messages for each timestep
                 self.send(self.local_messengers,i)
+                if 'plot' in str(i):
+                    check = self.recv(i)
             ball_list = [f for f in self.local_messengers]   
             for i in self.ports:
                 if 'plot' in str(i): #Not receiving messages from plotting
@@ -107,25 +111,52 @@ class Plot(Module):
         print('start plot')
         self.dic = {}
         c = 0
+        writer = animation.FFMpegFileWriter(fps=self.fps)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        x,y = self.shape.exterior.xy
+        ax.plot(x,y,'black')
+        ax.autoscale()
+        ax.set_aspect( 'equal', adjustable='datalim')
+        ax.relim()
+        modcount,self.oe=0,0
+        self.linedic = {}
+        writer.setup(fig,"writer_test.mp4", 100)
         while True:
             for i in self.ports:
                 if not 'plot' in str(i):
+                    print('check')
                     continue
-                lis = self.recv(i,timeout=4)
+                lis = self.recv(i)
+                self.send('hi',i)
                 if isinstance(lis,str):
                     c+=1
                     self.color=lis
                     print(c)
                     if c >=self.length:
-                        self.plot()
+                        writer.finish()
+##                        self.plot()
                         return
                     continue
                 
                 for line in lis:
+                    self.colordic[line.name] = [line.color, line.r]
                     if line.name not in self.dic:
                         self.dic[line.name]=[]
-                    self.dic[line.name].append(line.p)
-                    self.colordic[line.name] = [line.color, line.r]
+                        self.linedic[line.name], = ax.plot([],[],self.colordic[line.name][0])
+##                    self.dic[line.name].append(line.p)
+                    pnt = geo.point.Point(line.p)
+                    circle = pnt.buffer(self.colordic[line.name][1])
+                    x,y = circle.exterior.xy
+                    self.linedic[line.name].set_data(x,y)
+                modcount+=1
+                if round(line.elapsed,1) > self.oe:
+                    print('Elapsed Time:', round(line.elapsed,1))
+                    self.oe=round(line.elapsed,1)
+                if modcount >= self.length:
+                    writer.grab_frame()
+                    modcount = 0
+                
     def update(self,i):
         linelist = []
         for line in self.dic:
@@ -210,11 +241,12 @@ class BouncingBall:
         self.messenger.p = self.p0
         self.messenger.name = self.name
         self.messenger.color = color
+        self.messenger.elapsed = 0
     def run(self, ball_list):
         self.ball_list = ball_list
         self.collisions=0
         t = self.t_step
-
+        self.messenger.elapsed += t
         #Gravity calculations for timestep
         self.p0[1] = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
         self.p0[0] = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
@@ -311,6 +343,7 @@ class Messenger:
         self.p = [0.0,0.0]
         self.name = ''
         self.color = 'b'
+        self.elapsed = 0
         
 class Simulation:
     def __init__(self):
@@ -322,13 +355,13 @@ class Simulation:
         
         self.r=1
         self.mod_list = []
-        self.shape = geo.Polygon([(0, 0), (0, 30), (30, 30),(30,0)])
+        self.shape = geo.Polygon([(0, 0), (0, 60), (60, 60),(60,0)])
 
         self.fps = 60
 
     def run(self):
         for c,i in enumerate(self.n_list):
-            self.cortix = Cortix(use_mpi=False,log_filename = 'testing')
+            self.cortix = Cortix(use_mpi=False)
             self.net = Network()
             self.cortix.network = self.net
             self.plot = Plot(self.shape,modules=self.procs,runtime=self.runtime)
@@ -358,10 +391,10 @@ class Simulation:
 
 if __name__ == '__main__':
     sim = Simulation()
-    sim.runtime = 0.1
+    sim.runtime = 3
     sim.r = 1
-    sim.fps = 30
+    sim.fps = 100
     sim.t_step = 0.01
-    sim.procs = 3
-    sim.n_list = [9]
+    sim.procs = 5
+    sim.n_list = [30]
     sim.run()
