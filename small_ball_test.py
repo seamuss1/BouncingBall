@@ -57,10 +57,9 @@ class BallHandler(Module):
 ##            if round(self.elapsed,1) != self.oe:
 ##                print('Elapsed Time:', round(self.elapsed,1))
 ##                self.oe=round(self.elapsed,1)
-            for ball in self.local_balls:
-                collision = ball.run(ball_list)
-                self.collisions+=collision
-                
+            for c,ball in enumerate(self.local_balls):
+                messenger = ball.run(ball_list)
+                self.local_messengers[c] = messenger
             for i in self.ports: #Send and receive messages for each timestep
                 self.send(self.local_messengers,i)
                 if 'plot' in str(i):
@@ -73,8 +72,6 @@ class BallHandler(Module):
                 for messenger in messengerlis:
                     ball_list.append(messenger)
                 
-            for ball in self.local_balls:
-                ball.messenger.collision = []
 
         for i in self.ports: #Send 'done' string to plot module as end condition
             if 'plot' in str(i):
@@ -121,18 +118,16 @@ class Plot(Module):
         ax.relim()
         modcount,self.oe=0,0
         self.linedic = {}
-        writer.setup(fig,"writer_test.mp4", 100)
+        writer.setup(fig,'bb_animation.mp4', 90)
         while True:
             for i in self.ports:
                 if not 'plot' in str(i):
-                    print('check')
                     continue
                 lis = self.recv(i)
                 self.send('hi',i)
                 if isinstance(lis,str):
                     c+=1
                     self.color=lis
-                    print(c)
                     if c >=self.length:
                         writer.finish()
 ##                        self.plot()
@@ -156,43 +151,6 @@ class Plot(Module):
                 if modcount >= self.length:
                     writer.grab_frame()
                     modcount = 0
-                
-    def update(self,i):
-        linelist = []
-        for line in self.dic:
-            pnt = geo.point.Point(self.dic[line][i])
-            circle = pnt.buffer(self.colordic[line][1])
-            x,y = circle.exterior.xy
-            self.linedic[line].set_data(x,y)
-            linelist.append(self.linedic[line])
-        return linelist
-    
-    def init(self,ax):
-##        linelist = []
-##        for line in self.dic:
-##            linelist.append(self.linedic[line])
-        x,y = self.shape.exterior.xy
-        ax.plot(x,y,'black')
-        ax.autoscale()
-        ax.set_aspect( 'equal', adjustable='datalim')
-        ax.relim()
-        return ax
-    
-    def plot(self):
-        print('starting plot')
-        self.linedic = dict()
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        for line in self.dic:
-            if line not in self.linedic:
-                self.linedic[line], = ax.plot([],[],self.colordic[line][0])
-        print('creating animation')
-        ani = animation.FuncAnimation(fig, self.update, frames=[f for f in range(len(self.dic[line]))],
-                            init_func=lambda:self.init(ax))
-        plt.savefig('output_ball.png')
-        ani.save('bb_animation.mp4', fps=self.fps)
-        print('goodbye')
-        return
 
 class BouncingBall:
     def __init__(self,shape,bn=None,color='b',r=1):
@@ -232,6 +190,7 @@ class BouncingBall:
         self.m = 1
         self.KE = 0.5*self.m*((self.v0[0]**2+self.v0[1]**2)**0.5)**2
         self.timestamp=str(datetime.datetime.now())
+        self.collision=[]
         self.name = ''.join([random.choice(string.ascii_lowercase+string.digits) for f in range(10)])
         #Customize container class that is sent to other modules
         self.messenger = Messenger()
@@ -242,17 +201,38 @@ class BouncingBall:
         self.messenger.name = self.name
         self.messenger.color = color
         self.messenger.elapsed = 0
+        self.mycollisions = []
     def run(self, ball_list):
         self.ball_list = ball_list
         self.collisions=0
         t = self.t_step
         self.messenger.elapsed += t
+
+        for ball in self.ball_list: #Detects collision with other objects
+            #Reacts to intersection between this object and another
+            for c,line in enumerate(ball.collision): #Undetected Collisions received as a message
+                pnt = geo.point.Point(line['p0'])
+                shape = pnt.buffer(ball.r)
+                for d, col in enumerate(self.mycollisions):
+                    if line == col and col!=[]:
+##                        print(line,col,d,c)
+                        del self.mycollisions[d]
+                        del ball.collision[c]
+                        continue
+                if self.name == line['name'] and line not in self.mycollisions and len(ball.collision)>0:
+                    print('Check')
+                    p0,v0 = line['p0'],line['v0']
+                    self.ball_collision(ball,p0,v0)
+                    if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
+                        self.ball_shift(shape)
+                    del ball.collision[c]
+                    print(ball.collision)
+
         #Gravity calculations for timestep
         self.p0[1] = 0.5*self.a[1]*t**2+self.v0[1]*t+self.p0[1]
         self.p0[0] = 0.5*self.a[0]*t**2+self.v0[0]*t+self.p0[0]
         self.v0[1] = self.a[1]*t + self.v0[1]
         self.v0[0] = self.a[0]*t + self.v0[0]
-        
         #Update position and velocity variables
         self.pnt = geo.point.Point(self.p0[0],self.p0[1])
         self.circle = self.pnt.buffer(self.r)
@@ -262,29 +242,28 @@ class BouncingBall:
             if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
                 self.wall_collision(shape)
         for ball in self.ball_list: #Detects collision with other objects
+            if self.name==ball.name:
+                continue
             #ball is Messenger class object
             pnt = geo.point.Point(ball.p)
             shape = pnt.buffer(ball .r)
             name = ball.name
-            if self.name==ball.name:
-                continue
-            for c,line in enumerate(ball.collision): #Undetected Collisions received as a message
-                if self.name == line['name']:
-                    p0,v0 = line['p0'],line['v0']
-                    self.ball_collision(ball,p0,v0)
-                    if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
-                        self.ball_shift(shape)
-                    del ball.collision[c]
-            #Reacts to intersection between this object and another
+            
             if self.circle.crosses(shape) or self.circle.touches(shape) or self.circle.intersects(shape):
-                coldic = dict(name=self.name,v0=self.v0,p0=self.p0)
+                coldic = dict(name=self.name,v0=self.v0,p0=self.p0,elapsed=self.messenger.elapsed)
+                self.mycollisions.append(coldic)
                 self.messenger.collision.append(coldic)
                 self.ball_collision(ball,ball.p,ball.v)
+##                print(self.messenger.collision)
+                print('Ball collision')
                 self.ball_shift(shape)
-
+                
+        
+                    
         self.messenger.p = self.p0
-
-        return self.collisions
+##        self.messenger.collision=[]
+##        self.mycollisions = []
+        return self.messenger
 
     def wall_collision(self,shape):
         
@@ -334,7 +313,7 @@ class BouncingBall:
 
 class Messenger:
     def __init__(self, circle=None, collision = [], timestamp='0'):
-        self.collision = [dict(name='',v0=[0.0,0.0],p0=[0.0,0.0])] #format
+##        self.collision = [dict(name='',v0=[0.0,0.0],p0=[0.0,0.0])] #format
         self.collision = []
         self.timestamp = timestamp
         self.m = 1
@@ -355,7 +334,7 @@ class Simulation:
         
         self.r=1
         self.mod_list = []
-        self.shape = geo.Polygon([(0, 0), (0, 60), (60, 60),(60,0)])
+        self.shape = geo.Polygon([(0, 0), (0, 100), (100, 100),(100,0)])
 
         self.fps = 60
 
@@ -391,10 +370,11 @@ class Simulation:
 
 if __name__ == '__main__':
     sim = Simulation()
-    sim.runtime = 3
+    sim.runtime = 300
     sim.r = 1
-    sim.fps = 100
-    sim.t_step = 0.01
-    sim.procs = 5
-    sim.n_list = [30]
+    sim.fps = 50
+    sim.shape = geo.Polygon([(0, 0), (0, 80), (80, 80),(80,0)]).buffer(0.5)
+    sim.t_step = 0.0025
+    sim.procs = 16
+    sim.n_list = [80]
     sim.run()
