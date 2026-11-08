@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+contact_links:
+- name: Issue classification and work queues
+  url: https://github.com/seamuss1/BouncingBall/blob/master/.github/ISSUE_CONVENTION.md
+  about: Choose owner-requested or auto-generated; preserve existing priority and
+    Project fields.
